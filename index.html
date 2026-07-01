@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Post Services - Final Walk-Out Punch List</title>
+
+<!-- jsPDF for client-side PDF generation -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+:root{
+  --navy:#0f2a43;
+  --blue:#1d5c8a;
+  --accent:#2f80b5;
+  --green:#1f9d55;
+  --cyan:#5fe0e8;
+  --bg:#f4f6f8;
+  --line:#d9dee3;
+  --ink:#1a2733;
+  --muted:#6b7a88;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);color:var(--ink);font-size:16px;line-height:1.4;
+  padding-bottom:120px;
+}
+.wrap{max-width:820px;margin:0 auto;padding:0 14px;}
+
+/* Header / logo */
+.logohdr{width:100%;line-height:0;}
+.logohdr svg{width:100%;height:auto;display:block;}
+.docbar{background:var(--navy);color:#fff;text-align:center;padding:9px 10px;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;}
+
+/* Card */
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;margin:14px 0;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.card h2{margin:0 0 12px;font-size:15px;text-transform:uppercase;letter-spacing:.5px;color:var(--blue);border-bottom:2px solid var(--bg);padding-bottom:8px;}
+
+/* Form fields */
+label.fld{display:block;margin-bottom:12px;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;}
+label.fld input,label.fld select,textarea,.txtinput{
+  display:block;width:100%;margin-top:5px;padding:12px;font-size:16px;
+  border:1.5px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font-family:inherit;
+}
+label.fld input:focus,label.fld select:focus,textarea:focus{outline:none;border-color:var(--accent);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:520px){.grid2{grid-template-columns:1fr;}}
+.hint{font-size:12px;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;margin-top:3px;}
+
+/* Form type selector */
+.selector{background:#fff;border:1px solid var(--line);border-radius:12px;margin:14px 0;padding:16px;}
+.selector select{font-size:17px;font-weight:700;padding:14px;}
+
+/* Progress bar */
+.progwrap{margin-top:10px;}
+.progbar{height:10px;background:var(--bg);border-radius:6px;overflow:hidden;}
+.progfill{height:100%;width:0;background:var(--green);transition:width .25s ease;}
+.progtext{font-size:12px;color:var(--muted);margin-top:5px;text-align:right;}
+
+/* Checklist */
+.section-title{display:flex;align-items:center;gap:10px;margin:18px 0 8px;font-size:15px;font-weight:800;color:var(--navy);}
+.section-title .num{background:var(--navy);color:#fff;min-width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px;}
+.section-actions{margin-left:auto;font-size:12px;font-weight:600;color:var(--accent);background:none;border:1px solid var(--accent);border-radius:6px;padding:5px 9px;cursor:pointer;}
+
+.item{
+  display:flex;align-items:center;gap:12px;padding:11px 12px;border:1.5px solid var(--line);
+  border-radius:9px;margin-bottom:8px;background:#fff;cursor:pointer;transition:background .12s,border-color .12s;user-select:none;
+}
+.item.sub{margin-left:26px;background:#fafbfc;}
+.item.checked{background:#eaf7ef;border-color:var(--green);}
+.item.na{background:#f1f3f5;border-color:#c7ced4;}
+.item .box{
+  min-width:26px;height:26px;border:2px solid var(--muted);border-radius:6px;display:flex;align-items:center;justify-content:center;
+  color:#fff;flex-shrink:0;transition:background .12s,border-color .12s;
+}
+.item.checked .box{background:var(--green);border-color:var(--green);}
+.item .box svg{width:16px;height:16px;opacity:0;transition:opacity .12s;}
+.item.checked .box svg{opacity:1;}
+.item.na .box{border-color:#aeb7bf;background:#e2e6ea;}
+.item .txt{font-size:15px;flex:1;}
+.item.na .txt{color:#98a2ab;text-decoration:line-through;}
+.naBtn{
+  flex-shrink:0;font-size:12px;font-weight:700;color:var(--muted);background:#fff;border:1.5px solid var(--line);
+  border-radius:6px;padding:6px 10px;cursor:pointer;letter-spacing:.5px;
+}
+.item.na .naBtn{background:var(--muted);color:#fff;border-color:var(--muted);}
+
+/* Signatures */
+.sigblock{margin-bottom:18px;}
+.sigblock .sighead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;}
+.sigblock .siglabel{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--navy);}
+.sigblock .clearbtn{font-size:12px;color:var(--accent);background:none;border:none;cursor:pointer;font-weight:600;}
+.sigpad{width:100%;height:150px;border:1.5px dashed var(--accent);border-radius:9px;background:#fff;touch-action:none;display:block;}
+.sigpad.signed{border-style:solid;background:#fff;}
+.sigmeta{display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-top:8px;}
+@media(max-width:520px){.sigmeta{grid-template-columns:1fr;}}
+
+/* Footer submit bar */
+.submitbar{
+  position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);
+  padding:12px 14px;box-shadow:0 -2px 10px rgba(0,0,0,.06);z-index:50;
+}
+.submitbar .inner{max-width:820px;margin:0 auto;display:flex;align-items:center;gap:12px;}
+.submitbtn{
+  flex:1;background:var(--green);color:#fff;border:none;border-radius:10px;padding:16px;font-size:17px;font-weight:800;
+  cursor:pointer;letter-spacing:.3px;
+}
+.submitbtn:active{transform:translateY(1px);}
+.submitbtn:disabled{background:#9fb3c0;cursor:not-allowed;}
+.minicount{font-size:12px;color:var(--muted);white-space:nowrap;}
+
+/* Toast / status */
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;z-index:60;box-shadow:0 4px 14px rgba(0,0,0,.2);max-width:90%;text-align:center;display:none;}
+
+footer.addr{text-align:center;font-size:11px;color:var(--muted);padding:18px 10px 6px;line-height:1.6;}
+.othwrap{display:none;margin-top:8px;}
+.othwrap.show{display:block;}
+</style>
+</head>
+<body>
+
+<div class="logohdr">
+  <svg viewBox="0 0 640 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Post General Contractor Services">
+    <defs>
+      <linearGradient id="bgG" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#9ca2a7"/>
+        <stop offset="0.5" stop-color="#adb3b7"/>
+        <stop offset="1" stop-color="#7e858a"/>
+      </linearGradient>
+      <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+        <feGaussianBlur stdDeviation="7" result="b"/>
+        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    <rect width="640" height="250" fill="url(#bgG)"/>
+    <g filter="url(#glow)" fill="none" stroke="#63e2ea" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M110 150 L320 52 L530 150" stroke-width="7"/>
+      <path d="M170 150 L320 82 L470 150" stroke-width="5" opacity="0.9"/>
+      <path d="M225 150 L320 112 L415 150" stroke-width="3.5" opacity="0.75"/>
+    </g>
+    <text x="320" y="172" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="92" fill="#0c0e11">POST</text>
+    <rect x="150" y="185" width="340" height="6" rx="3" fill="#0c0e11"/>
+    <text x="320" y="214" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="21" letter-spacing="5" fill="#0c0e11">GENERAL CONTRACTOR SERVICES</text>
+  </svg>
+</div>
+<div class="docbar">Final Walk-Out Punch List</div>
+
+<div class="wrap">
+
+  <!-- Form type selector -->
+  <div class="selector">
+    <label class="fld" style="margin-bottom:0;">Punch List Type
+      <select id="formType">
+        <option value="bathroom">Bathroom</option>
+        <option value="kitchen">Kitchen</option>
+        <option value="basement">Basement</option>
+        <option value="paintfloor">Painting &amp; Flooring (Whole Home / Condo)</option>
+        <option value="wholehome">Whole Home Painting</option>
+      </select>
+    </label>
+  </div>
+
+  <!-- Project info -->
+  <div class="card">
+    <h2>Project Information</h2>
+    <label class="fld">Project Address
+      <input type="text" id="projectAddress" placeholder="e.g. 260 E Chestnut #1203">
+    </label>
+    <label class="fld">Client Name
+      <input type="text" id="clientName" placeholder="e.g. Robert Clark">
+    </label>
+    <div id="projectTypeRow" style="display:none;">
+      <label class="fld">Project Type
+        <select id="projectType">
+          <option value="">— Select —</option>
+          <option value="Condo">Condo</option>
+          <option value="Single-Family Home">Single-Family Home</option>
+        </select>
+      </label>
+    </div>
+    <div class="grid2">
+      <label class="fld">Construction Manager (CM)
+        <select id="cmSelect" onchange="handleStaffOther('cm')"></select>
+        <div class="othwrap" id="cmOther"><input class="txtinput" id="cmOtherInput" placeholder="Type name"></div>
+      </label>
+      <label class="fld">Project Manager (PM)
+        <select id="pmSelect" onchange="handleStaffOther('pm')"></select>
+        <div class="othwrap" id="pmOther"><input class="txtinput" id="pmOtherInput" placeholder="Type name"></div>
+      </label>
+    </div>
+    <label class="fld" style="margin-bottom:0;">Date
+      <input type="date" id="walkDate">
+    </label>
+
+    <div class="progwrap">
+      <div class="progbar"><div class="progfill" id="progFill"></div></div>
+      <div class="progtext" id="progText">0 of 0 items checked</div>
+    </div>
+  </div>
+
+  <!-- Checklist renders here -->
+  <div class="card">
+    <h2 id="checklistHeading">Punch List</h2>
+    <div id="checklist"></div>
+  </div>
+
+  <!-- Notes -->
+  <div class="card">
+    <h2>Outstanding Items / Notes</h2>
+    <textarea id="notes" rows="4" placeholder="List any open punch items, deficiencies, or notes to follow up on..."></textarea>
+  </div>
+
+  <!-- Signatures -->
+  <div class="card">
+    <h2>Sign-Off &amp; Approval</h2>
+
+    <div class="sigblock">
+      <div class="sighead"><span class="siglabel">CM Signature</span><button type="button" class="clearbtn" data-clear="cmSig">Clear</button></div>
+      <canvas class="sigpad" id="cmSig" data-name="cmSigName"></canvas>
+      <div class="sigmeta">
+        <input class="txtinput" id="cmSigName" placeholder="Printed name">
+        <input class="txtinput" type="date" id="cmSigDate">
+      </div>
+    </div>
+
+    <div class="sigblock">
+      <div class="sighead"><span class="siglabel">PM Signature</span><button type="button" class="clearbtn" data-clear="pmSig">Clear</button></div>
+      <canvas class="sigpad" id="pmSig" data-name="pmSigName"></canvas>
+      <div class="sigmeta">
+        <input class="txtinput" id="pmSigName" placeholder="Printed name">
+        <input class="txtinput" type="date" id="pmSigDate">
+      </div>
+    </div>
+
+    <div class="sigblock" style="margin-bottom:0;">
+      <div class="sighead"><span class="siglabel">Owner / Client Signature (Approval)</span><button type="button" class="clearbtn" data-clear="ownerSig">Clear</button></div>
+      <canvas class="sigpad" id="ownerSig" data-name="ownerSigName"></canvas>
+      <div class="sigmeta">
+        <input class="txtinput" id="ownerSigName" placeholder="Printed name">
+        <input class="txtinput" type="date" id="ownerSigDate">
+      </div>
+    </div>
+  </div>
+
+  <footer class="addr">
+    POST SERVICES INC. &bull; 540 Frontage Rd, Suite 2125, Northfield, IL 60093 &bull; 847-668-7658
+  </footer>
+</div>
+
+<div class="submitbar">
+  <div class="inner">
+    <span class="minicount" id="miniCount">0 / 0</span>
+    <button class="submitbtn" id="submitBtn">Submit &amp; Email PDF</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   CONFIG  -  edit these two things and you're done.
+   ============================================================ */
+
+// 1) STAFF names shown in the CM / PM dropdowns.
+//    Add or remove names here. "Other..." lets the crew type a name on the spot.
+const STAFF = ["Gio Torres", "Woody Clark"];
+
+// 2) Google Apps Script Web App URL that emails the PDF.
+const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbz4886aQ0bHW0aSqk8sebH_oBUgc9MEM1pOeHJy3Om_qOfdB4Xk7Ffdk2MFVypLNU0/exec";
+
+/* ============================================================
+   PUNCH LIST DATA  (matches your current forms)
+   ============================================================ */
+const LISTS = {
+  bathroom:{
+    title:"BATHROOM FINAL WALK-OUT PUNCH LIST",
+    sections:[
+      {t:"TUB / SHOWER / WATERPROOFING",items:[
+        "Tub or shower base level and secure",
+        "Wall tile straight, level, and evenly spaced",
+        "No cracked, chipped, or hollow tiles",
+        "Grout consistent and sealed",
+        "All corners caulked (not grouted)",
+        {p:"Clean silicone caulk at:",sub:["Tub/shower to wall","Corners","Niches","Bench (if applicable)"]},
+        "Shower pan flood-tested (if required)",
+        "Niche shelves level and secure"]},
+      {t:"PLUMBING & FIXTURES",items:[
+        "Shower valve trim installed straight and tight",
+        "Showerhead secure and adjusted correctly",
+        "Tub spout aligned and sealed",
+        "Vanity faucet tight (no movement)",
+        "Hot & cold operating correctly",
+        {p:"No leaks at:",sub:["Valve connections","Faucet supply lines","Drain & P-trap"]},
+        "Drain drains properly (no slow flow)",
+        "Toilet set solid (no rocking)",
+        "Toilet flushed multiple times (no leaks)"]},
+      {t:"VANITY, CABINETRY & MIRRORS",items:[
+        "Vanity level, plumb, and secure",
+        "Doors and drawers aligned",
+        "Soft-close hardware functioning",
+        "Countertop free of chips or cracks",
+        "Sink sealed properly to counter",
+        "Mirror centered and securely mounted",
+        "Medicine cabinet opens/closes smoothly"]},
+      {t:"ELECTRICAL & LIGHTING",items:[
+        "GFCI outlet installed and tested",
+        "Vanity lighting centered and level",
+        "Exhaust fan installed and vented properly",
+        "Fan tested (quiet, no vibration)",
+        "Switches labeled and functioning",
+        "No exposed wiring or gaps at boxes"]},
+      {t:"FLOORING",items:[
+        "Floor tile level with no lippage",
+        "Grout consistent and sealed",
+        "Floor transitions clean and secure",
+        "Toilet flange properly set (no gaps)",
+        "Baseboards tight and caulked"]},
+      {t:"PAINT & FINISH",items:[
+        "Walls smooth and even",
+        "No drips, runs, or roller marks",
+        "Trim painted clean and consistent",
+        {p:"Caulked at:",sub:["Trim","Vanity edges","Tub/shower transitions"]},
+        "No paint on fixtures, tile, or glass"]},
+      {t:"ACCESSORIES & HARDWARE",items:[
+        "Towel bars installed level and secure",
+        "Toilet paper holder secure",
+        "Robe hooks aligned",
+        "Shower door installed plumb (if applicable)",
+        "Shower door seals properly (no leaks)"]},
+      {t:"FINAL CLEAN & DETAIL",items:[
+        "All construction debris removed",
+        "Tile, grout, and glass cleaned",
+        "Fixtures polished",
+        "Floor cleaned with no haze",
+        "No dust in vanity or drawers"]},
+      {t:"CLIENT WALK-THROUGH READY",items:[
+        "Manuals & warranty info provided",
+        "Care & maintenance explained",
+        "Photos taken for records",
+        "Client punch list addressed",
+        "Final approval ready"]}
+    ]
+  },
+  kitchen:{
+    title:"KITCHEN FINAL WALK-OUT PUNCH LIST",
+    sections:[
+      {t:"CABINETRY & MILLWORK",items:[
+        "Cabinets level, plumb, and securely fastened",
+        "Doors aligned evenly (no sagging, rubbing, or gaps)",
+        "Drawers glide smoothly and close fully",
+        "Soft-close hinges & slides working properly",
+        "No chips, scratches, or finish defects",
+        "End panels, fillers, crown, and toe kicks installed tight",
+        "Hardware straight, tight, and consistent",
+        "No exposed fasteners or unfinished edges"]},
+      {t:"COUNTERTOPS & BACKSPLASH",items:[
+        "Countertops level and properly supported",
+        "No cracks, chips, or visible seams",
+        "Seams smooth and color-matched",
+        "Sink cutout clean and sealed",
+        "Faucet holes clean (no chipping)",
+        {p:"Silicone caulk clean and continuous at:",sub:["Counter to backsplash","Counter to wall","Sink perimeter"]},
+        "Backsplash tile straight and evenly spaced",
+        "Grout consistent, sealed, and clean"]},
+      {t:"PLUMBING & FIXTURES",items:[
+        "Faucet securely mounted (no movement)",
+        "Hot & cold clearly labeled and functioning",
+        {p:"No leaks at:",sub:["Faucet connections","Sink drain","P-trap","Dishwasher supply & drain"]},
+        "Garbage disposal installed correctly",
+        "Disposal tested (no vibration or leaks)",
+        "Shut-off valves accessible and working"]},
+      {t:"ELECTRICAL & LIGHTING",items:[
+        "All outlets installed, straight, and secure",
+        "GFCIs installed where required and tested",
+        "Under-cabinet lighting installed and working",
+        "All switches labeled correctly",
+        "Fixtures centered and aligned",
+        "No exposed wiring or gaps at boxes",
+        "Appliances powered and operational"]},
+      {t:"APPLIANCES",items:[
+        "Appliances level and secured",
+        "Doors open/close smoothly",
+        "Protective film removed",
+        "Refrigerator water line tested (if applicable)",
+        "Dishwasher runs full cycle without leaks",
+        "Range/oven tested",
+        "Microwave hood fan venting properly"]},
+      {t:"FLOORING",items:[
+        "Flooring installed tight with no movement",
+        "No lippage, cracks, or damaged planks/tiles",
+        "Transitions installed clean and secure",
+        "Baseboards tight to wall and floor",
+        "Caulked where required",
+        "Floors clean with no adhesive residue"]},
+      {t:"PAINT & FINISH",items:[
+        "Walls smooth with consistent finish",
+        "No drips, runs, or missed areas",
+        "Touch-ups complete behind appliances",
+        "Trim painted clean (no brush marks)",
+        "Caulked at trim, cabinets, and joints",
+        "No overspray on cabinets, counters, or floors"]},
+      {t:"FINAL DETAIL & CLEAN",items:[
+        "All debris removed from site",
+        "Cabinets wiped inside and out",
+        "Countertops cleaned and polished",
+        "Sink, fixtures, and appliances cleaned",
+        "Trash disposal complete",
+        "No construction dust remaining"]},
+      {t:"CLIENT WALK-THROUGH READY",items:[
+        "Manuals & warranty info provided",
+        "Care & maintenance explained",
+        "Photos taken for records",
+        "Client punch list addressed",
+        "Final approval ready"]}
+    ]
+  },
+  basement:{
+    title:"BASEMENT FINAL WALK-OUT PUNCH LIST",
+    sections:[
+      {t:"MOISTURE & FOUNDATION",items:[
+        "Foundation walls free of active leaks or seepage",
+        "Cracks sealed and monitored",
+        "Vapor barrier installed per spec",
+        "No efflorescence or signs of moisture intrusion",
+        {p:"Sump system checked:",sub:["Sump pump installed and tested","Backup / battery tested (if applicable)","Pit sealed and vented"]},
+        "Perimeter / drain tile clear (if applicable)",
+        "Dehumidifier operating (if applicable)"]},
+      {t:"FRAMING & INSULATION",items:[
+        "Walls framed straight, plumb, and secure",
+        "Proper clearance maintained from foundation",
+        "Insulation installed to spec (walls & rim joists)",
+        "Fire blocking installed where required",
+        "Soffits and chases framed square and secure",
+        "No framing in direct contact with damp concrete"]},
+      {t:"ELECTRICAL & LIGHTING",items:[
+        "All outlets installed, straight, and secure",
+        "GFCI / AFCI protection where required and tested",
+        "Recessed / can lights aligned and working",
+        "Switches labeled and functioning",
+        "Sub-panel labeled correctly (if applicable)",
+        "Smoke & CO detectors installed and tested",
+        "No exposed wiring or open junction boxes"]},
+      {t:"PLUMBING & FIXTURES (IF APPLICABLE)",items:[
+        "Rough-ins located correctly",
+        {p:"No leaks at:",sub:["Supply connections","Drain & P-trap","Ejector / sump connections"]},
+        "Wet bar / bath fixtures secure and sealed",
+        "Shut-off valves accessible and working",
+        "Ejector pit sealed and vented"]},
+      {t:"HVAC & VENTILATION",items:[
+        "Supply and return runs installed and balanced",
+        "Registers / vents secure and unobstructed",
+        "Bath / utility exhaust vented properly",
+        "Thermostat / zone working (if applicable)",
+        "Adequate combustion air for mechanicals"]},
+      {t:"DRYWALL & CEILING",items:[
+        "Walls smooth, seams and screws concealed",
+        "Corners straight and true",
+        "Ceiling (drywall or drop) level and secure",
+        "Access panels installed at valves & cleanouts",
+        "No cracks or nail pops"]},
+      {t:"FLOORING",items:[
+        "Flooring installed tight with no movement",
+        "Proper underlayment / moisture barrier used",
+        "No lippage, gaps, or damaged pieces",
+        "Transitions clean and secure",
+        "Baseboards tight and caulked"]},
+      {t:"TRIM, DOORS & PAINT",items:[
+        "Doors hung plumb; latch and swing properly",
+        "Trim smooth, caulked, and consistent",
+        "Walls painted with full, even coverage",
+        "No drips, runs, or roller marks",
+        "Closets / storage finished per scope"]},
+      {t:"EGRESS & SAFETY",items:[
+        "Egress window / well installed to code (if bedroom)",
+        "Egress opens fully and unobstructed",
+        "Handrails secure on stairs",
+        "Stair treads and risers consistent and safe",
+        "Fire / CO detection interconnected (if required)"]},
+      {t:"FINAL CLEAN & CLOSE-OUT",items:[
+        "All debris and materials removed",
+        "Floors cleaned; no dust or residue",
+        "Fixtures and surfaces wiped down",
+        "Mechanical area left clean and accessible",
+        "Paint and finish touch-ups complete"]},
+      {t:"CLIENT WALK-THROUGH READY",items:[
+        "Manuals & warranty info provided",
+        "Care & maintenance explained",
+        "Photos taken for records",
+        "Client punch list addressed",
+        "Final approval ready"]}
+    ]
+  },
+  paintfloor:{
+    title:"PAINTING & FLOORING FINAL WALK-OUT PUNCH LIST",
+    projectType:true,
+    sections:[
+      {t:"FLOOR PROTECTION & PREP",items:[
+        "Existing surfaces protected during work",
+        "Subfloor clean, flat, and ready",
+        "Underlayment installed per spec (if applicable)",
+        "Soundproofing membrane installed (condos)",
+        "Moisture requirements met",
+        "No debris under flooring"]},
+      {t:"FLOORING INSTALLATION",items:[
+        "Flooring installed straight and consistent",
+        "No lippage, gaps, or hollow spots",
+        "Planks/tiles securely set",
+        "Expansion gaps provided where required",
+        "Pattern/layout approved and consistent",
+        "No cracked, chipped, or damaged pieces"]},
+      {t:"TRANSITIONS, BASE & TRIM",items:[
+        "Transitions installed tight and flush",
+        "No sharp edges or loose pieces",
+        "Baseboards installed straight and secure",
+        "Shoe molding clean and consistent (if used)",
+        "All nail holes filled and painted",
+        "Caulk clean and continuous"]},
+      {t:"FLOOR FINISH & CLEAN",items:[
+        "Floors clean with no haze or residue",
+        "No adhesive, grout, or paint on flooring",
+        "Tile grout consistent and sealed (if applicable)",
+        "Wood/LVP floors wiped and protected",
+        "No scratches, scuffs, or damage"]},
+      {t:"WALL PAINT - GENERAL",items:[
+        "Correct color(s) applied per agreement",
+        "Full coverage with consistent sheen",
+        "No flashing, lap marks, or holidays",
+        "Clean, straight cut lines",
+        "No overspray on floors or trim"]},
+      {t:"CEILINGS",items:[
+        "Uniform finish and sheen",
+        "No roller lines or patch flashing",
+        "Clean cut-in lines",
+        "No paint on fixtures or vents"]},
+      {t:"TRIM, DOORS & DETAILS",items:[
+        "Trim smooth and evenly painted",
+        "Doors painted clean (both sides if required)",
+        "No drips, runs, or brush marks",
+        "Hardware clean (hinges, knobs, plates)",
+        "Baseboards touched up after flooring install"]},
+      {t:"FINAL TOUCH-UPS",items:[
+        "Walls reviewed under proper lighting",
+        "Touch-ups completed room-by-room",
+        "Wall plates removed, painted behind, reinstalled",
+        "Corners and edges clean",
+        "No missed areas"]},
+      {t:"FINAL CLEAN & CLOSE-OUT",items:[
+        "All materials and debris removed",
+        "Floors broom-clean / vacuumed",
+        "Rooms dust-free",
+        "Leftover labeled paint provided",
+        "Flooring care & maintenance explained"]},
+      {t:"CLIENT WALK-THROUGH READY",items:[
+        "CM & PM final inspection complete",
+        "Client walkthrough completed",
+        "Client punch list addressed",
+        "Photos taken for records",
+        "Final approval ready"]}
+    ]
+  },
+  wholehome:{
+    title:"WHOLE HOME PAINTING FINAL WALK-OUT PUNCH LIST",
+    sections:[
+      {t:"SURFACE PREP",items:[
+        "All walls properly patched and sanded",
+        "Nail pops repaired",
+        "Cracks filled and smooth",
+        "Water stains sealed with stain-blocking primer",
+        "Caulk applied at trim, joints, and transitions",
+        "Dust removed prior to painting"]},
+      {t:"WALL PAINT - GENERAL",items:[
+        "Correct color(s) applied per agreement",
+        "Consistent finish (no flashing or lap marks)",
+        "Full coverage (no bleed-through or holidays)",
+        "Cut lines straight and clean",
+        "No roller marks or texture inconsistencies",
+        "No overspray on trim, floors, or fixtures"]},
+      {t:"CEILINGS",items:[
+        "Uniform finish and sheen",
+        "No roller lines or patch flashing",
+        "Clean cut-in lines at walls",
+        "No paint on lights, fans, or vents"]},
+      {t:"TRIM, DOORS & BASEBOARDS",items:[
+        "Trim smooth with no brush marks",
+        "Doors painted evenly (front & back if required)",
+        "No drips, runs, or sags",
+        "Hinges, knobs, and hardware clean",
+        "Baseboards tight to wall and floor",
+        "Caulked and touched up"]},
+      {t:"WINDOWS & CLOSETS",items:[
+        "Window trim painted clean",
+        "No paint on glass or tracks",
+        "Closets fully painted per scope",
+        "Shelving protected or repainted cleanly"]},
+      {t:"STAIRS & RAILINGS (IF APPLICABLE)",items:[
+        "Handrails smooth and evenly coated",
+        "Balusters clean and consistent",
+        "No drips on stair treads",
+        "Walls around stairs clean and uniform"]},
+      {t:"FLOOR & SURFACE PROTECTION",items:[
+        "Floors protected during painting",
+        "No paint on flooring, tile, or carpet",
+        "Drop cloths removed",
+        "No adhesive residue or tape marks"]},
+      {t:"FINAL TOUCH-UPS",items:[
+        "Final walkthrough completed room-by-room",
+        "Touch-ups completed under proper lighting",
+        "Wall plates removed, painted behind, reinstalled",
+        "Switches and outlets clean",
+        "All paint defects addressed"]},
+      {t:"FINAL CLEAN & CLOSE-OUT",items:[
+        "All debris and materials removed",
+        "Rooms broom-clean",
+        "Furniture returned (if applicable)",
+        "Leftover labeled paint provided to client",
+        "Paint colors & sheens documented"]},
+      {t:"CLIENT WALK-THROUGH READY",items:[
+        "Client walkthrough completed",
+        "Client punch list addressed",
+        "Final approval ready",
+        "Photos taken for records"]}
+    ]
+  }
+};
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const CHECK_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+let currentKey="bathroom";
+
+function buildStaffDropdowns(){
+  ["cm","pm"].forEach(function(role){
+    const sel=document.getElementById(role+"Select");
+    sel.innerHTML='<option value="">— Select —</option>'+
+      STAFF.map(function(n){return '<option value="'+n+'">'+n+'</option>';}).join('')+
+      '<option value="__other">Other...</option>';
+  });
+}
+function handleStaffOther(role){
+  const sel=document.getElementById(role+"Select");
+  const wrap=document.getElementById(role+"Other");
+  wrap.classList.toggle("show", sel.value==="__other");
+  autofillSigName(role);
+}
+function staffValue(role){
+  const sel=document.getElementById(role+"Select");
+  if(sel.value==="__other") return document.getElementById(role+"OtherInput").value.trim();
+  return sel.value;
+}
+// Auto-fill the printed-name field next to that person's signature
+function autofillSigName(role){
+  const target=document.getElementById(role+"SigName");
+  if(target) target.value=staffValue(role);
+}
+
+function renderChecklist(key){
+  currentKey=key;
+  const data=LISTS[key];
+  document.getElementById("checklistHeading").textContent=data.title.replace(" FINAL WALK-OUT PUNCH LIST","");
+  document.getElementById("projectTypeRow").style.display = data.projectType ? "block" : "none";
+  const host=document.getElementById("checklist");
+  host.innerHTML="";
+  data.sections.forEach(function(sec,si){
+    const st=document.createElement("div");
+    st.className="section-title";
+    st.innerHTML='<span class="num">'+(si+1)+'</span><span>'+sec.t+'</span>';
+    const act=document.createElement("button");
+    act.type="button";act.className="section-actions";act.textContent="Check all";
+    act.onclick=function(){host.querySelectorAll('[data-sec="'+si+'"]').forEach(function(el){el.classList.remove("na");el.classList.add("checked");});updateProgress();};
+    st.appendChild(act);
+    host.appendChild(st);
+
+    sec.items.forEach(function(it,ii){
+      if(typeof it==="string"){
+        host.appendChild(makeItem(it,si,ii,false));
+      }else{
+        host.appendChild(makeItem(it.p,si,ii,false));
+        it.sub.forEach(function(s,sj){host.appendChild(makeItem(s,si,ii+"-"+sj,true));});
+      }
+    });
+  });
+  updateProgress();
+}
+function makeItem(text,si,ii,isSub){
+  const row=document.createElement("div");
+  row.className="item"+(isSub?" sub":"");
+  row.dataset.sec=si;
+  row.dataset.label=text;
+  row.innerHTML='<span class="box">'+CHECK_SVG+'</span><span class="txt">'+text+'</span><button type="button" class="naBtn">N/A</button>';
+  row.onclick=function(){row.classList.remove("na");row.classList.toggle("checked");updateProgress();};
+  const na=row.querySelector(".naBtn");
+  na.onclick=function(e){e.stopPropagation();row.classList.remove("checked");row.classList.toggle("na");updateProgress();};
+  return row;
+}
+function updateProgress(){
+  const items=document.querySelectorAll(".item");
+  const na=document.querySelectorAll(".item.na").length;
+  const done=document.querySelectorAll(".item.checked").length;
+  const applicable=items.length-na;
+  const pct=applicable?Math.round(done/applicable*100):0;
+  document.getElementById("progFill").style.width=pct+"%";
+  document.getElementById("progText").textContent=done+" of "+applicable+" checked ("+pct+"%)"+(na?"  ·  "+na+" N/A":"");
+  document.getElementById("miniCount").textContent=done+" / "+applicable;
+}
+
+/* ============================================================
+   SIGNATURE PADS
+   ============================================================ */
+function setupPad(canvas){
+  const ctx=canvas.getContext("2d");
+  function resize(){
+    const r=canvas.getBoundingClientRect();
+    const dpr=window.devicePixelRatio||1;
+    canvas.width=r.width*dpr;canvas.height=r.height*dpr;
+    ctx.scale(dpr,dpr);ctx.lineWidth=2.2;ctx.lineCap="round";ctx.strokeStyle="#0f2a43";
+  }
+  resize();
+  let drawing=false,last=null;
+  function pos(e){
+    const r=canvas.getBoundingClientRect();
+    const t=e.touches?e.touches[0]:e;
+    return{x:t.clientX-r.left,y:t.clientY-r.top};
+  }
+  function start(e){e.preventDefault();drawing=true;last=pos(e);canvas.classList.add("signed");canvas.dataset.signed="1";}
+  function move(e){if(!drawing)return;e.preventDefault();const p=pos(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;}
+  function end(){drawing=false;}
+  canvas.addEventListener("mousedown",start);canvas.addEventListener("mousemove",move);
+  window.addEventListener("mouseup",end);
+  canvas.addEventListener("touchstart",start,{passive:false});
+  canvas.addEventListener("touchmove",move,{passive:false});
+  canvas.addEventListener("touchend",end);
+  canvas._clear=function(){ctx.clearRect(0,0,canvas.width,canvas.height);canvas.classList.remove("signed");canvas.dataset.signed="";};
+}
+document.querySelectorAll(".sigpad").forEach(setupPad);
+document.querySelectorAll("[data-clear]").forEach(function(b){
+  b.onclick=function(){document.getElementById(b.dataset.clear)._clear();};
+});
+
+/* ============================================================
+   PDF GENERATION
+   ============================================================ */
+function drawLogo(doc,W){
+  const cx=W/2;
+  // glowing peak (vector approximation of the POST mark)
+  doc.setDrawColor(70,205,220);doc.setLineCap("round");doc.setLineJoin("round");
+  doc.setLineWidth(3.2);doc.line(cx-72,58,cx,26);doc.line(cx,26,cx+72,58);
+  doc.setLineWidth(2.2);doc.line(cx-46,58,cx,40);doc.line(cx,40,cx+46,58);
+  doc.setLineWidth(1);
+  // POST wordmark
+  doc.setTextColor(12,14,17);doc.setFont("helvetica","bold");doc.setFontSize(42);
+  doc.text("POST",cx,90,{align:"center"});
+  // divider
+  doc.setFillColor(12,14,17);doc.rect(cx-96,98,192,3,"F");
+  // subtitle
+  doc.setFont("helvetica","bold");doc.setFontSize(10);
+  doc.text("GENERAL CONTRACTOR SERVICES",cx,115,{align:"center",charSpace:1.6});
+}
+
+function buildPDF(){
+  const jsPDF=window.jspdf.jsPDF;
+  const doc=new jsPDF({unit:"pt",format:"letter"});
+  const W=doc.internal.pageSize.getWidth();
+  const H=doc.internal.pageSize.getHeight();
+  const M=48;let y=0;
+  const data=LISTS[currentKey];
+
+  function footer(){
+    doc.setFontSize(7.5);doc.setTextColor(120);
+    doc.text("POST SERVICES INC.   540 Frontage Rd, Suite 2125, Northfield, IL 60093   847-668-7658",W/2,H-24,{align:"center"});
+  }
+  function newPage(){doc.addPage();y=M;}
+  function need(h){if(y+h>H-48)newPage();}
+
+  // Logo header
+  drawLogo(doc,W);
+  // title band
+  doc.setFillColor(15,42,67);doc.rect(0,128,W,22,"F");
+  doc.setTextColor(255);doc.setFont("helvetica","bold");doc.setFontSize(10.5);
+  doc.text(data.title,W/2,143,{align:"center"});
+  y=176;
+
+  // Project info
+  doc.setTextColor(26,39,51);doc.setFontSize(10);
+  const cm=staffValue("cm"), pm=staffValue("pm");
+  const info=[
+    ["Project Address", val("projectAddress")],
+    ["Client Name", val("clientName")]
+  ];
+  if(data.projectType) info.push(["Project Type", document.getElementById("projectType").value||""]);
+  info.push(["CM", cm],["PM", pm],["Date", fmtDate(val("walkDate"))]);
+  info.forEach(function(row){
+    need(20);
+    doc.setFont("helvetica","bold");doc.text(row[0]+":",M,y);
+    doc.setFont("helvetica","normal");doc.text(String(row[1]||"—"),M+120,y);
+    y+=18;
+  });
+  y+=6;
+
+  // Sections
+  const host=document.getElementById("checklist");
+  data.sections.forEach(function(sec,si){
+    need(28);
+    doc.setFillColor(29,92,138);doc.rect(M,y-11,W-2*M,18,"F");
+    doc.setTextColor(255);doc.setFont("helvetica","bold");doc.setFontSize(9.5);
+    doc.text((si+1)+".  "+sec.t,M+6,y+1);
+    y+=20;
+    doc.setFont("helvetica","normal");doc.setFontSize(9.5);
+
+    host.querySelectorAll('[data-sec="'+si+'"]').forEach(function(el){
+      const checked=el.classList.contains("checked");
+      const na=el.classList.contains("na");
+      const sub=el.classList.contains("sub");
+      const label=el.dataset.label;
+      const indent=sub?M+22:M+8;
+      const lines=doc.splitTextToSize(label,W-indent-M-30);
+      need(14*lines.length);
+      doc.setDrawColor(120);
+      if(na){
+        doc.setDrawColor(174,183,191);doc.setFillColor(226,230,234);doc.rect(indent,y-8,10,10,"FD");
+        doc.setTextColor(150,150,150);
+        doc.text(lines,indent+16,y);
+        doc.setFont("helvetica","bold");doc.setFontSize(7.5);doc.setTextColor(120,130,138);
+        doc.text("N/A",W-M-2,y,{align:"right"});
+        doc.setFont("helvetica","normal");doc.setFontSize(9.5);
+      }else if(checked){
+        doc.setFillColor(31,157,85);doc.rect(indent,y-8,10,10,"FD");
+        doc.setDrawColor(255);doc.setLineWidth(1.3);
+        doc.line(indent+2,y-3,indent+4,y-1);doc.line(indent+4,y-1,indent+8,y-6);doc.setLineWidth(1);
+        doc.setTextColor(26,39,51);doc.text(lines,indent+16,y);
+      }else{
+        doc.rect(indent,y-8,10,10,"S");
+        doc.setTextColor(150,150,150);doc.text(lines,indent+16,y);
+      }
+      y+=14*lines.length;
+    });
+    y+=6;
+  });
+
+  // Notes
+  const notes=val("notes");
+  if(notes){
+    need(30);
+    doc.setTextColor(29,92,138);doc.setFont("helvetica","bold");doc.setFontSize(9.5);
+    doc.text("OUTSTANDING ITEMS / NOTES",M,y);y+=14;
+    doc.setTextColor(26,39,51);doc.setFont("helvetica","normal");
+    const nlines=doc.splitTextToSize(notes,W-2*M);
+    nlines.forEach(function(l){need(13);doc.text(l,M,y);y+=13;});
+    y+=6;
+  }
+
+  // Signatures
+  need(30);
+  doc.setFillColor(15,42,67);doc.rect(M,y-11,W-2*M,18,"F");
+  doc.setTextColor(255);doc.setFont("helvetica","bold");doc.setFontSize(9.5);
+  doc.text("SIGN-OFF & APPROVAL",M+6,y+1);y+=24;
+
+  const sigs=[
+    ["CM Signature","cmSig","cmSigName","cmSigDate"],
+    ["PM Signature","pmSig","pmSigName","pmSigDate"],
+    ["Owner / Client Signature (Approval)","ownerSig","ownerSigName","ownerSigDate"]
+  ];
+  sigs.forEach(function(s){
+    need(70);
+    const canvas=document.getElementById(s[1]);
+    doc.setTextColor(107,122,136);doc.setFont("helvetica","bold");doc.setFontSize(8);
+    doc.text(s[0].toUpperCase(),M,y);
+    y+=6;
+    if(canvas.dataset.signed==="1"){
+      try{const img=canvas.toDataURL("image/png");doc.addImage(img,"PNG",M,y,180,50);}catch(e){}
+    }
+    doc.setDrawColor(150);doc.line(M,y+52,M+180,y+52);
+    doc.setTextColor(26,39,51);doc.setFont("helvetica","normal");doc.setFontSize(9);
+    doc.text("Name: "+(val(s[2])||"__________________"),M+200,y+30);
+    doc.text("Date: "+(fmtDate(val(s[3]))||"____________"),M+200,y+48);
+    y+=68;
+  });
+
+  const total=doc.getNumberOfPages();
+  for(let p=1;p<=total;p++){doc.setPage(p);footer();}
+  return doc;
+}
+function val(id){const e=document.getElementById(id);return e?e.value.trim():"";}
+function fmtDate(d){if(!d)return"";const p=d.split("-");return p.length===3?(p[1]+"/"+p[2]+"/"+p[0]):d;}
+
+/* ============================================================
+   SUBMIT  ->  build PDF, download, email via Apps Script
+   ============================================================ */
+function toast(msg,ms){const t=document.getElementById("toast");t.textContent=msg;t.style.display="block";clearTimeout(t._h);t._h=setTimeout(function(){t.style.display="none";},ms||3500);}
+
+async function onSubmit(){
+  if(!val("projectAddress")||!val("clientName")){toast("Add the Project Address and Client Name first.");return;}
+  if(document.getElementById("ownerSig").dataset.signed!=="1"){toast("Owner / Client approval signature is required.");return;}
+
+  const btn=document.getElementById("submitBtn");
+  btn.disabled=true;btn.textContent="Generating...";
+
+  const doc=buildPDF();
+  const cleanAddr=(val("projectAddress")||"walkthrough").replace(/[^a-z0-9]+/gi,"-").replace(/^-|-$/g,"");
+  const fname="PunchList_"+currentKey+"_"+cleanAddr+".pdf";
+
+  doc.save(fname);
+
+  if(ENDPOINT_URL && ENDPOINT_URL.indexOf("PASTE_YOUR")===-1){
+    btn.textContent="Emailing...";
+    const pdfBase64=doc.output("datauristring").split(",")[1];
+    const payload={
+      filename:fname,
+      pdfBase64:pdfBase64,
+      formType:LISTS[currentKey].title,
+      projectAddress:val("projectAddress"),
+      clientName:val("clientName"),
+      cm:staffValue("cm"),
+      pm:staffValue("pm"),
+      date:fmtDate(val("walkDate"))
+    };
+    try{
+      await fetch(ENDPOINT_URL,{
+        method:"POST",
+        mode:"no-cors",
+        headers:{"Content-Type":"text/plain;charset=utf-8"},
+        body:JSON.stringify(payload)
+      });
+      toast("Submitted. PDF saved to this device and emailed to the office.",5000);
+    }catch(e){
+      toast("PDF saved to this device. Email send failed - check connection.",5000);
+    }
+  }else{
+    toast("PDF saved to this device. (Email not configured yet - see setup guide.)",5000);
+  }
+  btn.disabled=false;btn.textContent="Submit & Email PDF";
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+buildStaffDropdowns();
+renderChecklist("bathroom");
+document.getElementById("formType").addEventListener("change",function(e){renderChecklist(e.target.value);});
+document.getElementById("submitBtn").addEventListener("click",onSubmit);
+document.getElementById("cmOtherInput").addEventListener("input",function(){autofillSigName("cm");});
+document.getElementById("pmOtherInput").addEventListener("input",function(){autofillSigName("pm");});
+document.getElementById("clientName").addEventListener("input",function(){document.getElementById("ownerSigName").value=document.getElementById("clientName").value;});
+(function(){var t=new Date().toISOString().slice(0,10);["walkDate","cmSigDate","pmSigDate","ownerSigDate"].forEach(function(id){var el=document.getElementById(id);if(el)el.value=t;});})();
+</script>
+</body>
+</html>
