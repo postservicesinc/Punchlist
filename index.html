@@ -887,8 +887,9 @@ async function onSubmit(){
   const cleanAddr=(val("projectAddress")||"walkthrough").replace(/[^a-z0-9]+/gi,"-").replace(/^-|-$/g,"");
   const fname="PunchList_"+currentKey+"_"+cleanAddr+".pdf";
 
-  doc.save(fname);
-
+  // Send the email FIRST. On phones, downloading the PDF opens the viewer and can
+  // interrupt the page before the email fires, so we email, wait for it, then download.
+  var emailedOK=false;
   if(ENDPOINT_URL && ENDPOINT_URL.indexOf("PASTE_YOUR")===-1){
     btn.textContent="Emailing...";
     const pdfBase64=doc.output("datauristring").split(",")[1];
@@ -909,13 +910,15 @@ async function onSubmit(){
         headers:{"Content-Type":"text/plain;charset=utf-8"},
         body:JSON.stringify(payload)
       });
-      toast("Submitted. PDF saved to this device and emailed to the office.",5000);
-    }catch(e){
-      toast("PDF saved to this device. Email send failed - check connection.",5000);
-    }
-  }else{
-    toast("PDF saved to this device. (Email not configured yet - see setup guide.)",5000);
+      await new Promise(function(r){setTimeout(r,700);});
+      emailedOK=true;
+    }catch(e){emailedOK=false;}
   }
+
+  // Download the local copy LAST (after the email has been sent)
+  btn.textContent="Saving copy...";
+  doc.save(fname);
+  toast(emailedOK ? "Submitted and emailed to the office. A copy was saved to this device." : "Copy saved to this device. Email did not send - check your connection and try again.",6000);
   btn.disabled=false;btn.textContent="Submit";
 }
 
