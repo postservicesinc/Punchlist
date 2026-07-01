@@ -30,8 +30,8 @@ body{
 .wrap{max-width:820px;margin:0 auto;padding:0 14px;}
 
 /* Header / logo */
-.logohdr{width:100%;line-height:0;}
-.logohdr svg{width:100%;height:auto;display:block;}
+.logohdr{width:100%;line-height:0;text-align:center;background:#fff;padding:14px 0 6px;}
+.logohdr svg{width:100%;max-width:360px;height:auto;display:block;margin:0 auto;}
 .docbar{background:var(--navy);color:#fff;text-align:center;padding:9px 10px;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;}
 
 /* Card */
@@ -92,10 +92,11 @@ label.fld input:focus,label.fld select:focus,textarea:focus{outline:none;border-
 .sigblock .sighead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;}
 .sigblock .siglabel{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--navy);}
 .sigblock .clearbtn{font-size:12px;color:var(--accent);background:none;border:none;cursor:pointer;font-weight:600;}
-.sigpad{width:100%;height:150px;border:1.5px dashed var(--accent);border-radius:9px;background:#fff;touch-action:none;display:block;}
+.sigpad{width:100%;height:120px;border:1.5px dashed var(--accent);border-radius:9px;background:#fff;touch-action:none;display:block;}
 .sigpad.signed{border-style:solid;background:#fff;}
 .sigmeta{display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-top:8px;}
 @media(max-width:520px){.sigmeta{grid-template-columns:1fr;}}
+.disclaimer{font-size:12px;color:#5b6670;background:#f7fafb;border:1px solid var(--line);border-radius:8px;padding:11px 13px;margin-bottom:16px;line-height:1.5;}
 
 /* Footer submit bar */
 .submitbar{
@@ -104,7 +105,7 @@ label.fld input:focus,label.fld select:focus,textarea:focus{outline:none;border-
 }
 .submitbar .inner{max-width:820px;margin:0 auto;display:flex;align-items:center;gap:12px;}
 .submitbtn{
-  flex:1;background:var(--green);color:#fff;border:none;border-radius:10px;padding:16px;font-size:17px;font-weight:800;
+  flex:1;background:var(--cyan);color:var(--navy);border:none;border-radius:10px;padding:16px;font-size:17px;font-weight:800;
   cursor:pointer;letter-spacing:.3px;
 }
 .submitbtn:active{transform:translateY(1px);}
@@ -134,7 +135,7 @@ footer.addr{text-align:center;font-size:11px;color:var(--muted);padding:18px 10p
         <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
       </filter>
     </defs>
-    <rect width="640" height="250" fill="url(#bgG)"/>
+    <rect width="640" height="250" fill="#ffffff"/>
     <g filter="url(#glow)" fill="none" stroke="#63e2ea" stroke-linejoin="round" stroke-linecap="round">
       <path d="M110 150 L320 52 L530 150" stroke-width="7"/>
       <path d="M170 150 L320 82 L470 150" stroke-width="5" opacity="0.9"/>
@@ -216,6 +217,8 @@ footer.addr{text-align:center;font-size:11px;color:var(--muted);padding:18px 10p
   <div class="card">
     <h2>Sign-Off &amp; Approval</h2>
 
+    <div class="disclaimer">By signing below, the client acknowledges that the final walkthrough has been completed and approves all work as finished and satisfactory. Any work performed after this approval will be considered warranty work, which Post Services Inc. warranties for one (1) year from the date of approval.</div>
+
     <div class="sigblock">
       <div class="sighead"><span class="siglabel">CM Signature</span><button type="button" class="clearbtn" data-clear="cmSig">Clear</button></div>
       <canvas class="sigpad" id="cmSig" data-name="cmSigName"></canvas>
@@ -252,7 +255,7 @@ footer.addr{text-align:center;font-size:11px;color:var(--muted);padding:18px 10p
 <div class="submitbar">
   <div class="inner">
     <span class="minicount" id="miniCount">0 / 0</span>
-    <button class="submitbtn" id="submitBtn">Submit &amp; Email PDF</button>
+    <button class="submitbtn" id="submitBtn">Submit</button>
   </div>
 </div>
 
@@ -265,7 +268,8 @@ footer.addr{text-align:center;font-size:11px;color:var(--muted);padding:18px 10p
 
 // 1) STAFF names shown in the CM / PM dropdowns.
 //    Add or remove names here. "Other..." lets the crew type a name on the spot.
-const STAFF = ["Gio Torres", "Woody Clark"];
+const CM_STAFF = ["Gio Torres"];
+const PM_STAFF = ["Woody Clark", "Jim Kolke"];
 
 // 2) Google Apps Script Web App URL that emails the PDF.
 const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbz4886aQ0bHW0aSqk8sebH_oBUgc9MEM1pOeHJy3Om_qOfdB4Xk7Ffdk2MFVypLNU0/exec";
@@ -334,13 +338,7 @@ const LISTS = {
         "Tile, grout, and glass cleaned",
         "Fixtures polished",
         "Floor cleaned with no haze",
-        "No dust in vanity or drawers"]},
-      {t:"CLIENT WALK-THROUGH READY",items:[
-        "Manuals & warranty info provided",
-        "Care & maintenance explained",
-        "Photos taken for records",
-        "Client punch list addressed",
-        "Final approval ready"]}
+        "No dust in vanity or drawers"]}
     ]
   },
   kitchen:{
@@ -407,13 +405,7 @@ const LISTS = {
         "Countertops cleaned and polished",
         "Sink, fixtures, and appliances cleaned",
         "Trash disposal complete",
-        "No construction dust remaining"]},
-      {t:"CLIENT WALK-THROUGH READY",items:[
-        "Manuals & warranty info provided",
-        "Care & maintenance explained",
-        "Photos taken for records",
-        "Client punch list addressed",
-        "Final approval ready"]}
+        "No construction dust remaining"]}
     ]
   },
   basement:{
@@ -483,13 +475,7 @@ const LISTS = {
         "Floors cleaned; no dust or residue",
         "Fixtures and surfaces wiped down",
         "Mechanical area left clean and accessible",
-        "Paint and finish touch-ups complete"]},
-      {t:"CLIENT WALK-THROUGH READY",items:[
-        "Manuals & warranty info provided",
-        "Care & maintenance explained",
-        "Photos taken for records",
-        "Client punch list addressed",
-        "Final approval ready"]}
+        "Paint and finish touch-ups complete"]}
     ]
   },
   paintfloor:{
@@ -551,13 +537,7 @@ const LISTS = {
         "Floors broom-clean / vacuumed",
         "Rooms dust-free",
         "Leftover labeled paint provided",
-        "Flooring care & maintenance explained"]},
-      {t:"CLIENT WALK-THROUGH READY",items:[
-        "CM & PM final inspection complete",
-        "Client walkthrough completed",
-        "Client punch list addressed",
-        "Photos taken for records",
-        "Final approval ready"]}
+        "Flooring care & maintenance explained"]}
     ]
   },
   wholehome:{
@@ -615,12 +595,7 @@ const LISTS = {
         "Rooms broom-clean",
         "Furniture returned (if applicable)",
         "Leftover labeled paint provided to client",
-        "Paint colors & sheens documented"]},
-      {t:"CLIENT WALK-THROUGH READY",items:[
-        "Client walkthrough completed",
-        "Client punch list addressed",
-        "Final approval ready",
-        "Photos taken for records"]}
+        "Paint colors & sheens documented"]}
     ]
   }
 };
@@ -632,12 +607,15 @@ const CHECK_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-widt
 let currentKey="bathroom";
 
 function buildStaffDropdowns(){
+  var lists={cm:CM_STAFF, pm:PM_STAFF};
   ["cm","pm"].forEach(function(role){
     const sel=document.getElementById(role+"Select");
     sel.innerHTML='<option value="">— Select —</option>'+
-      STAFF.map(function(n){return '<option value="'+n+'">'+n+'</option>';}).join('')+
+      lists[role].map(function(n){return '<option value="'+n+'">'+n+'</option>';}).join('')+
       '<option value="__other">Other...</option>';
   });
+  var cmSel=document.getElementById("cmSelect");
+  if(CM_STAFF.length===1){cmSel.value=CM_STAFF[0];autofillSigName("cm");}
 }
 function handleStaffOther(role){
   const sel=document.getElementById(role+"Select");
@@ -855,7 +833,14 @@ function buildPDF(){
   need(30);
   doc.setFillColor(15,42,67);doc.rect(M,y-11,W-2*M,18,"F");
   doc.setTextColor(255);doc.setFont("helvetica","bold");doc.setFontSize(9.5);
-  doc.text("SIGN-OFF & APPROVAL",M+6,y+1);y+=24;
+  doc.text("SIGN-OFF & APPROVAL",M+6,y+1);y+=22;
+  var disc="By signing below, the client acknowledges that the final walkthrough has been completed and approves all work as finished and satisfactory. Any work performed after this approval will be considered warranty work, which Post Services Inc. warranties for one (1) year from the date of approval.";
+  doc.setFont("helvetica","italic");doc.setFontSize(8);doc.setTextColor(90,100,110);
+  var dl=doc.splitTextToSize(disc,W-2*M);
+  need(dl.length*11+10);
+  dl.forEach(function(l){doc.text(l,M,y);y+=11;});
+  y+=10;
+  doc.setFont("helvetica","normal");doc.setFontSize(9.5);doc.setTextColor(26,39,51);
 
   const sigs=[
     ["CM Signature","cmSig","cmSigName","cmSigDate"],
@@ -930,7 +915,7 @@ async function onSubmit(){
   }else{
     toast("PDF saved to this device. (Email not configured yet - see setup guide.)",5000);
   }
-  btn.disabled=false;btn.textContent="Submit & Email PDF";
+  btn.disabled=false;btn.textContent="Submit";
 }
 
 /* ============================================================
@@ -943,7 +928,7 @@ document.getElementById("submitBtn").addEventListener("click",onSubmit);
 document.getElementById("cmOtherInput").addEventListener("input",function(){autofillSigName("cm");});
 document.getElementById("pmOtherInput").addEventListener("input",function(){autofillSigName("pm");});
 document.getElementById("clientName").addEventListener("input",function(){document.getElementById("ownerSigName").value=document.getElementById("clientName").value;});
-(function(){var t=new Date().toISOString().slice(0,10);["walkDate","cmSigDate","pmSigDate","ownerSigDate"].forEach(function(id){var el=document.getElementById(id);if(el)el.value=t;});})();
+(function(){var d=new Date();var t=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");["walkDate","cmSigDate","pmSigDate","ownerSigDate"].forEach(function(id){var el=document.getElementById(id);if(el)el.value=t;});})();
 </script>
 </body>
 </html>
