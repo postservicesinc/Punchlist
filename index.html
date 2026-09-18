@@ -263,6 +263,34 @@ const PM_STAFF = ["Gio Torres", "Radhames De Leon", "Geoff Vincent", "Jim Kolke"
 // 2) Google Apps Script Web App URL that emails the PDF.
 const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbz4886aQ0bHW0aSqk8sebH_oBUgc9MEM1pOeHJy3Om_qOfdB4Xk7Ffdk2MFVypLNU0/exec";
  
+// 3) AIRTABLE CONFIG  ——  paste your Personal Access Token below.
+//    To create one: https://airtable.com/create/tokens
+//    Scope needed: data.records:write    Base: "Punch List"
+const AIRTABLE_TOKEN = "PASTE_YOUR_AIRTABLE_TOKEN_HERE";
+const AIRTABLE_BASE  = "appGzQcRXe0KYZxgy";
+const AIRTABLE_SUBMISSIONS_TABLE = "tblsts7q9JDvhwUmC";
+const AIRTABLE_ITEMS_TABLE       = "tblAz5vtK67deO7bn";
+// Field IDs (so the code never breaks if you rename columns)
+const AT_FIELDS = {
+  // Submissions table
+  projectAddress: "fldQaIQk7S03Ny9V3",
+  clientName:     "fldEwPkqmE4YvnAhr",
+  pm:             "fldBl9rzxrXHQZMET",
+  punchListType:  "fldx4QsLVFu1SSAz1",
+  submissionDate: "fldGHaC0Yp4kdhL0O",
+  completionPct:  "fldwAyO9Xj3Q9FEBf",
+  notes:          "fldjqVpQKRWcJVRwB",
+  pmSigner:       "fld1bt76SJi2CqQLX",
+  ownerSigner:    "fldvRbzYLdYVIYXjk",
+  status:         "fldtGrPXGWwGXY56D",
+  // Checklist Items table
+  itemText:       "fldnwzGSmI3vV5fw9",
+  section:        "fldiIxHunphsWi68V",
+  itemStatus:     "fldYLNGQahoY8Lde9",
+  itemNotes:      "fldodH0A3SVWCSDfU",
+  submission:     "fldXgWwI8h3Yx3YPn"
+};
+ 
 /* ============================================================
    PUNCH LIST DATA  (matches your current forms)
    ============================================================ */
@@ -876,7 +904,92 @@ function val(id){const e=document.getElementById(id);return e?e.value.trim():"";
 function fmtDate(d){if(!d)return"";const p=d.split("-");return p.length===3?(p[1]+"/"+p[2]+"/"+p[0]):d;}
  
 /* ============================================================
-   SUBMIT  ->  build PDF, download, email via Apps Script
+   AIRTABLE HELPERS
+   ============================================================ */
+function mapPunchListType(key){
+  var m={"bathroom":"Bathroom Remodel","kitchen":"Kitchen Remodel","basement":"Basement Remodel","wholehome":"Whole Home Remodel","paintfloor":"Whole Home Remodel","miscellaneous":"Miscellaneous Items"};
+  return m[key]||key;
+}
+ 
+function collectChecklistItems(){
+  var items=[];
+  var allRows=document.querySelectorAll("#checklist .item");
+  var data=LISTS[currentKey];
+  allRows.forEach(function(row){
+    var secIdx=parseInt(row.dataset.sec,10);
+    var sectionName=data.sections[secIdx]?data.sections[secIdx].t:"";
+    var status="Unchecked";
+    if(row.classList.contains("checked")) status="Checked";
+    else if(row.classList.contains("na")) status="N/A";
+    items.push({text:row.dataset.label,section:sectionName,status:status});
+  });
+  return items;
+}
+ 
+async function submitToAirtable(){
+  if(!AIRTABLE_TOKEN || AIRTABLE_TOKEN.indexOf("PASTE_YOUR")!==-1) return false;
+ 
+  var items=collectChecklistItems();
+  var na=items.filter(function(i){return i.status==="N/A";}).length;
+  var checked=items.filter(function(i){return i.status==="Checked";}).length;
+  var applicable=items.length-na;
+  var pct=applicable?checked/applicable:0;
+ 
+  // Determine PM value for Airtable (must match a select choice)
+  var pmVal=staffValue("pm");
+  var pmChoices=["Gio Torres","Radhames De Leon","Geoff Vincent","Jim Kolke"];
+  var pmField=pmChoices.indexOf(pmVal)!==-1 ? pmVal : "Other";
+ 
+  // Build the notes field: include "Other" PM name if applicable, plus any general context
+  var notesParts=[];
+  if(pmField==="Other" && pmVal) notesParts.push("PM (Other): "+pmVal);
+  var projType=val("projectType");
+  if(projType) notesParts.push("Project Type: "+projType);
+ 
+  // 1) Create the Submission record
+  var subFields={};
+  subFields[AT_FIELDS.projectAddress]=val("projectAddress");
+  subFields[AT_FIELDS.clientName]=val("clientName");
+  subFields[AT_FIELDS.pm]=pmField;
+  subFields[AT_FIELDS.punchListType]=mapPunchListType(currentKey);
+  subFields[AT_FIELDS.submissionDate]=val("walkDate")||null;
+  subFields[AT_FIELDS.completionPct]=pct;
+  subFields[AT_FIELDS.notes]=notesParts.join("\n")||null;
+  subFields[AT_FIELDS.pmSigner]=val("pmSigName")||null;
+  subFields[AT_FIELDS.ownerSigner]=val("ownerSigName")||null;
+  subFields[AT_FIELDS.status]=pct>=1?"Complete":"In Progress";
+ 
+  var subRes=await fetch("https://api.airtable.com/v0/"+AIRTABLE_BASE+"/"+AIRTABLE_SUBMISSIONS_TABLE,{
+    method:"POST",
+    headers:{"Authorization":"Bearer "+AIRTABLE_TOKEN,"Content-Type":"application/json"},
+    body:JSON.stringify({fields:subFields})
+  });
+  if(!subRes.ok) throw new Error("Airtable submission failed: "+subRes.status);
+  var subRecord=await subRes.json();
+  var submissionId=subRecord.id;
+ 
+  // 2) Create Checklist Item records in batches of 10
+  for(var b=0;b<items.length;b+=10){
+    var batch=items.slice(b,b+10);
+    var records=batch.map(function(it){
+      var f={};
+      f[AT_FIELDS.itemText]=it.text;
+      f[AT_FIELDS.section]=it.section;
+      f[AT_FIELDS.itemStatus]=it.status;
+      f[AT_FIELDS.submission]=[submissionId];
+      return {fields:f};
+    });
+    await fetch("https://api.airtable.com/v0/"+AIRTABLE_BASE+"/"+AIRTABLE_ITEMS_TABLE,{
+      method:"POST",
+      headers:{"Authorization":"Bearer "+AIRTABLE_TOKEN,"Content-Type":"application/json"},
+      body:JSON.stringify({records:records})
+    });
+  }
+  return true;
+}
+ 
+/* ============================================================
+   SUBMIT  ->  build PDF, download, email via Apps Script, save to Airtable
    ============================================================ */
 function toast(msg,ms){const t=document.getElementById("toast");t.textContent=msg;t.style.display="block";clearTimeout(t._h);t._h=setTimeout(function(){t.style.display="none";},ms||3500);}
  
@@ -916,9 +1029,23 @@ async function onSubmit(){
     }catch(e){emailedOK=false;}
   }
  
+  // Save to Airtable
+  var airtableOK=false;
+  try{
+    btn.textContent="Saving to Airtable...";
+    airtableOK=await submitToAirtable();
+  }catch(e){console.error("Airtable error:",e);airtableOK=false;}
+ 
   btn.textContent="Saving copy...";
   doc.save(fname);
-  toast(emailedOK ? "Submitted and emailed to the office. A copy was saved to this device." : "Copy saved to this device. Email did not send - check your connection and try again.",6000);
+ 
+  // Build result message
+  var parts=[];
+  if(emailedOK) parts.push("emailed to the office");
+  if(airtableOK) parts.push("saved to Airtable");
+  parts.push("PDF saved to this device");
+  toast(parts.length>1 ? "Done: "+parts.join(", ")+"." : parts[0]+".",6000);
+ 
   btn.disabled=false;btn.textContent="Submit";
 }
  
@@ -936,6 +1063,4 @@ document.getElementById("clientName").addEventListener("input",function(){docume
 </body>
 </html>
  
-
-
-Downloaded index_2.html Show in Explorer
+Downloaded index_1.html Show in Explorer
