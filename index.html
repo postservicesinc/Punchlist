@@ -190,6 +190,10 @@ footer.addr{text-align:center;font-size:11px;color:var(--muted);padding:18px 10p
       <select id="pmSelect" onchange="handleStaffOther('pm')"></select>
       <div class="othwrap" id="pmOther"><input class="txtinput" id="pmOtherInput" placeholder="Type name"></div>
     </label>
+    <label class="fld">Sales Lead
+      <select id="salesSelect" onchange="handleStaffOther('sales')"></select>
+      <div class="othwrap" id="salesOther"><input class="txtinput" id="salesOtherInput" placeholder="Type name"></div>
+    </label>
     <label class="fld" style="margin-bottom:0;">Date
       <input type="date" id="walkDate">
     </label>
@@ -258,7 +262,10 @@ footer.addr{text-align:center;font-size:11px;color:var(--muted);padding:18px 10p
  
 // 1) STAFF names shown in the PM dropdown.
 //    Add or remove names here. "Other..." lets the crew type a name on the spot.
-const PM_STAFF = ["Gio Torres", "Radhames De Leon", "Geoff Vincent", "Jim Kolke"];
+const PM_STAFF = ["Gio Torres", "Radhames De Leon", "Michael Cison", "Geoff Vincent", "Jim Kolke"];
+
+  // Sales Lead names shown in the Sales Lead dropdown.
+  const SALES_STAFF = ["Woody Clark", "Gary Tumanov"];
  
 // 2) Google Apps Script Web App URL that emails the PDF.
 const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbz4886aQ0bHW0aSqk8sebH_oBUgc9MEM1pOeHJy3Om_qOfdB4Xk7Ffdk2MFVypLNU0/exec";
@@ -618,33 +625,32 @@ const LISTS = {
   miscellaneous:{
     title:"MISCELLANEOUS ITEMS FINAL WALK-OUT PUNCH LIST",
     sections:[
-      {t:"UNIT G SCOPE OF WORK",items:[
-        "Close the existing connecting doorway between Units F and G with new framing, drywall, and finish work",
-        "Construct a new interior wall to create a bedroom",
-        "Furnish and install a new bedroom door, including casing, trim, and hardware",
-        "Repair and paint the damaged pantry door",
-        "Repair the cabinet backing and adjust cabinet doors for proper alignment",
-        "Adjust the bedroom closet door for proper operation",
-        "Prepare and paint the full unit, including closet interiors"]},
-      {t:"UNIT F SCOPE OF WORK",items:[
-        "Install new hallway closet doors and adjust the existing HVAC closet doors",
-        "Install and adjust the refrigerator filler panel and install new MDF soffit trim in the kitchen",
-        "Remove the existing kitchen drop ceiling and install a new framed drywall ceiling with required access panels",
-        "Install four recessed LED wafer lights and a new dimmer switch in the kitchen",
-        "Remove the existing bathroom drop ceiling and install a new framed drywall ceiling with required access panels",
-        "Install one recessed LED wafer light above the bathtub",
-        "Remove the existing office door and repair the frame, hinge locations, and surrounding drywall",
-        "Install new electrical outlets and convert the existing door-activated light switch to a standard wall switch",
-        "Remove wallpaper and prepare and paint the kitchen and bathroom walls",
-        "Complete drywall repairs and painting in the office",
-        "Paint the bedroom hallway, living room, dining room, primary bathroom, primary bedroom, and second bedroom",
-        "Relocate and reconnect the affected HVAC ductwork as required for the revised construction layout, including sealing and testing the system"]},
-      {t:"FINAL CLEAN & CLOSE-OUT",items:[
-        "All construction debris removed",
-        "Floors cleaned; no dust or residue",
-        "Fixtures and surfaces wiped down",
+      {t:"SCOPE OF WORK COMPLETED",items:[
+        "All work in the signed agreement and change orders is complete",
+        "Work matches the approved scope, plans, and selections",
+        "Materials and finishes installed as specified",
+        "No missing, damaged, or defective items",
+        "Workmanship meets quality standards"]},
+      {t:"INSTALLATION & OPERATION",items:[
+        "Installed items are level, plumb, and securely fastened",
+        "Doors, windows, cabinets, and hardware operate smoothly",
+        "Fixtures, outlets, switches, and equipment installed and working",
+        "Mechanical, plumbing, and electrical work tested (if applicable)",
+        "No leaks, gaps, or loose components"]},
+      {t:"FINISH & APPEARANCE",items:[
+        "Surfaces smooth, even, and free of defects",
+        "Trim, caulk, and seams clean and complete",
         "Paint and finish touch-ups complete",
-        "All work areas left clean and accessible"]}
+        "No scratches, scuffs, stains, or damage to existing surfaces"]},
+      {t:"ADDITIONAL ITEMS",items:[
+        "Items added during the walkthrough are listed in Outstanding Items / Notes",
+        "Client requests and concerns have been addressed",
+        "Manuals, warranties, and leftover materials provided (if applicable)"]},
+      {t:"FINAL CLEAN & CLOSE-OUT",items:[
+        "All debris and materials removed",
+        "Work areas cleaned and left accessible",
+        "Protection materials removed",
+        "Final photos taken"]}
     ]
   }
 };
@@ -661,7 +667,13 @@ function buildStaffDropdowns(){
     PM_STAFF.map(function(n){return '<option value="'+n+'">'+n+'</option>';}).join('')+
     '<option value="__other">Other...</option>';
 }
-function handleStaffOther(role){
+function buildSalesDropdown(){
+    const sel=document.getElementById("salesSelect");
+    sel.innerHTML='<option value="">\u2014 Select \u2014</option>'+
+      SALES_STAFF.map(function(n){return '<option value="'+n+'">'+n+'</option>';}).join('')+
+      '<option value="__other">Other...</option>';
+  }
+  function handleStaffOther(role){
   const sel=document.getElementById(role+"Select");
   const wrap=document.getElementById(role+"Other");
   wrap.classList.toggle("show", sel.value==="__other");
@@ -805,7 +817,7 @@ function buildPDF(){
     ["Client Name", val("clientName")]
   ];
   if(data.projectType) info.push(["Project Type", document.getElementById("projectType").value||""]);
-  info.push(["PM", pm],["Date", fmtDate(val("walkDate"))]);
+  info.push(["PM", pm],["Sales Lead", staffValue("sales")],["Date", fmtDate(val("walkDate"))]);
   info.forEach(function(row){
     need(20);
     doc.setFont("helvetica","bold");doc.text(row[0]+":",M,y);
@@ -945,6 +957,8 @@ async function submitToAirtable(){
   if(pmField==="Other" && pmVal) notesParts.push("PM (Other): "+pmVal);
   var projType=val("projectType");
   if(projType) notesParts.push("Project Type: "+projType);
+    var salesVal=staffValue("sales");
+    if(salesVal) notesParts.push("Sales Lead: "+salesVal);
  
   // 1) Create the Submission record
   var subFields={};
@@ -1015,6 +1029,7 @@ async function onSubmit(){
       projectAddress:val("projectAddress"),
       clientName:val("clientName"),
       pm:staffValue("pm"),
+      salesLead:staffValue("sales"),
       date:fmtDate(val("walkDate"))
     };
     try{
@@ -1053,6 +1068,7 @@ async function onSubmit(){
    INIT
    ============================================================ */
 buildStaffDropdowns();
+buildSalesDropdown();
 renderChecklist("bathroom");
 document.getElementById("formType").addEventListener("change",function(e){renderChecklist(e.target.value);});
 document.getElementById("submitBtn").addEventListener("click",onSubmit);
