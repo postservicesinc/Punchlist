@@ -262,7 +262,7 @@ footer.addr{text-align:center;font-size:11px;color:var(--muted);padding:18px 10p
  
 // 1) STAFF names shown in the PM dropdown.
 //    Add or remove names here. "Other..." lets the crew type a name on the spot.
-const PM_STAFF = ["Gio Torres", "Radhames De Leon", "Michael Cison", "Geoff Vincent", "Jim Kolke"];
+const PM_STAFF = ["Gio Torres", "Radhames De Leon", "Michael Cison", "Jim Kolke"];
 
   // Sales Lead names shown in the Sales Lead dropdown.
   const SALES_STAFF = ["Woody Clark", "Gary Tumanov"];
@@ -949,7 +949,7 @@ async function submitToAirtable(){
  
   // Determine PM value for Airtable (must match a select choice)
   var pmVal=staffValue("pm");
-  var pmChoices=["Gio Torres","Radhames De Leon","Geoff Vincent","Jim Kolke"];
+  var pmChoices=["Gio Torres","Radhames De Leon","Michael Cison","Jim Kolke"];
   var pmField=pmChoices.indexOf(pmVal)!==-1 ? pmVal : "Other";
  
   // Build the notes field: include "Other" PM name if applicable, plus any general context
